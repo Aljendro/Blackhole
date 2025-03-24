@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Blackhole",
+  "version": "1.0",
+  "description": "Track time spent on specified websites and calculate debt accumulated.",
+  "permissions": ["storage", "tabs", "alarms"],
+  "background": {
+    "service_worker": "js/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["js/content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

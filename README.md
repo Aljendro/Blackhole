@@ -12,6 +12,9 @@ spend to repay the debt.
 
 ```json
 {
-  "blackholes": [{ "url": "<regex string>" }]
+  "blackholes": [
+    { "url": "https://example.com" } // regex to match the url
+  ]
+  "rate": 0.01 // Global default rate. $0.01 per minute
 }
 ```
