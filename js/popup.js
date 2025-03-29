@@ -13,7 +13,7 @@ function updateUI() {
 
   // Update UI
   document.getElementById("total-debt").textContent =
-    `$${totalDebt.toFixed(2)}`;
+    `$${totalDebt.toFixed(5)}`;
 
   // Display site list
   const sitesList = document.getElementById("sites-list");
@@ -43,32 +43,41 @@ function updateUI() {
   }
 }
 
-// Function to load the latest data
+// Function to load the initial data
 async function loadData() {
-  const result = await chrome.storage.local.get(["trackingData", "config"]);
+  const result = await browser.storage.local.get(["trackingData", "config"]);
   trackingData = result.trackingData || {};
   config = result.config || { rate: 0.01 };
 
-  // Check if active tracking is happening and update in real-time
-  const activeState = await chrome.runtime.sendMessage({
-    type: "getActiveState",
-  });
-  if (activeState && activeState.isActive) {
-    // Update the active site's data with current session
-    const domain = activeState.domain;
-    if (domain && trackingData[domain]) {
-      const currentSessionTime =
-        (Date.now() - activeState.startTime) / 1000 / 60;
-      const tempData = { ...trackingData };
-      tempData[domain] = {
-        totalTime: trackingData[domain].totalTime + currentSessionTime,
-        debt: trackingData[domain].debt + currentSessionTime * config.rate,
-      };
-      trackingData = tempData;
-    }
-  }
+  // Check if active tracking is happening and update UI with latest data
+  await requestActiveStateUpdate();
 
   updateUI();
+}
+
+async function requestActiveStateUpdate() {
+  try {
+    const activeState = await browser.runtime.sendMessage({
+      type: "getActiveState",
+    });
+
+    if (activeState && activeState.isActive) {
+      // Update the active site's data with current session
+      const domain = activeState.domain;
+      if (domain && trackingData[domain]) {
+        const currentSessionTime =
+          (Date.now() - activeState.startTime) / 1000 / 60;
+        const tempData = { ...trackingData };
+        tempData[domain] = {
+          totalTime: trackingData[domain].totalTime + currentSessionTime,
+          debt: trackingData[domain].debt + currentSessionTime * config.rate,
+        };
+        trackingData = tempData;
+      }
+    }
+  } catch (error) {
+    console.error("Failed to get active state:", error);
+  }
 }
 
 // Initial setup when popup is opened
@@ -76,18 +85,25 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Load data immediately
   await loadData();
 
-  // Set up regular updates while popup is open
-  updateInterval = setInterval(loadData, 1000); // Update every second
+  // Set up message listener for data updates from background script
+  browser.runtime.onMessage.addListener((message) => {
+    if (message.type === "trackingUpdate") {
+      trackingData = message.trackingData;
+      updateUI();
+    }
+  });
+
+  // Request regular updates from the background script
+  browser.runtime.sendMessage({ type: "registerPopup" });
 
   // Configure button
   document.getElementById("configure-btn").addEventListener("click", () => {
-    chrome.runtime.openOptionsPage();
+    browser.runtime.openOptionsPage();
   });
 });
 
 // Clean up when popup is closed
 window.addEventListener("unload", () => {
-  if (updateInterval) {
-    clearInterval(updateInterval);
-  }
+  // Notify background script that popup is closing
+  browser.runtime.sendMessage({ type: "unregisterPopup" });
 });

@@ -11,7 +11,7 @@ document.addEventListener("click", updateActivity);
 
 function updateActivity() {
   lastActivity = Date.now();
-  chrome.runtime.sendMessage({ type: "userActivity" });
+  browser.runtime.sendMessage({ type: "userActivity" });
 }
 
 // This script can be expanded to inject notifications or visual elements to show debt accumulation
