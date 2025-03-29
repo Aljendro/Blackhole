@@ -22,4 +22,4 @@ spend to repay the debt.
   - currently, before plugin is loaded, set in js/background.js
 - rate
   - the amount of money that needs to be repaid per minute
-  - e.g. 0.01 means 1 cent per minute
+  - 0.01 means 1 cent per minute
