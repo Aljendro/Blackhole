@@ -8,7 +8,7 @@ This is a browser plugin to track the time spent within a list of sites.
 The more time you spent in a blackhole, the more money you will need to
 spend to repay the debt.
 
-## Configuration (TODO: Currently configured within the extension)
+## Configuration
 
 ```json
 {
@@ -19,7 +19,6 @@ spend to repay the debt.
 
 - blackholes
   - the sites that are considered blackholes
-  - currently, before plugin is loaded, set in js/background.js
 - rate
   - the amount of money that needs to be repaid per minute
   - 0.01 means 1 cent per minute
