@@ -33,11 +33,22 @@ function updateUI() {
     const minutes = Math.floor(siteData.totalTime % 60);
     const timeString = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 
-    siteElement.innerHTML = `
-      <div class="site-name">${domain}</div>
-      <div class="site-time">${timeString}</div>
-      <div class="site-debt">$${siteData.debt.toFixed(2)}</div>
-    `;
+    // Create and append elements safely using textContent
+    const nameDiv = document.createElement("div");
+    nameDiv.className = "site-name";
+    nameDiv.textContent = domain;
+
+    const timeDiv = document.createElement("div");
+    timeDiv.className = "site-time";
+    timeDiv.textContent = timeString;
+
+    const debtDiv = document.createElement("div");
+    debtDiv.className = "site-debt";
+    debtDiv.textContent = `$${siteData.debt.toFixed(2)}`;
+
+    siteElement.appendChild(nameDiv);
+    siteElement.appendChild(timeDiv);
+    siteElement.appendChild(debtDiv);
 
     sitesList.appendChild(siteElement);
   }
