@@ -1,0 +1,3 @@
+#!/bin/bash
+
+web-ext build --ignore-files start_project.local.sh build.sh
