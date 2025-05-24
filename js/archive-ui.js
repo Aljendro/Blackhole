@@ -64,61 +64,109 @@ function createArchiveElement(monthKey, archive) {
   const timeString =
     totalHours > 0 ? `${totalHours}h ${totalMinutes}m` : `${totalMinutes}m`;
 
-  archiveDiv.innerHTML = `
-    <div class="archive-header">
-      <h3>${monthName}</h3>
-      <div class="archive-actions">
-        <button class="view-btn" data-month="${monthKey}">View Details</button>
-        <button class="delete-btn" data-month="${monthKey}">Delete</button>
-      </div>
-    </div>
-    <div class="archive-summary">
-      <div class="archive-stat">
-        <span class="label">Total Debt:</span>
-        <span class="value">$${archive.totals.totalDebt.toFixed(2)}</span>
-      </div>
-      <div class="archive-stat">
-        <span class="label">Total Time:</span>
-        <span class="value">${timeString}</span>
-      </div>
-      <div class="archive-stat">
-        <span class="label">Sites Tracked:</span>
-        <span class="value">${archive.totals.siteCount}</span>
-      </div>
-      <div class="archive-stat">
-        <span class="label">Rate:</span>
-        <span class="value">$${archive.rate}/min</span>
-      </div>
-      <div class="archive-stat">
-        <span class="label">Archived:</span>
-        <span class="value">${archivedDateStr}</span>
-      </div>
-    </div>
-    <div class="archive-details" id="details-${monthKey}" style="display: none;">
-      <h4>Site Breakdown</h4>
-      <div class="sites-list">
-        ${Object.entries(archive.sites)
-          .map(([domain, data]) => {
-            const hours = Math.floor(data.totalTime / 60);
-            const minutes = Math.floor(data.totalTime % 60);
-            const siteTimeString =
-              hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-            return `
-            <div class="site-entry">
-              <span class="site-name">${domain}</span>
-              <span class="site-time">${siteTimeString}</span>
-              <span class="site-debt">$${data.debt.toFixed(2)}</span>
-            </div>
-          `;
-          })
-          .join("")}
-      </div>
-    </div>
-  `;
+  // Create archive header
+  const archiveHeader = document.createElement("div");
+  archiveHeader.className = "archive-header";
 
-  // Add event listeners
-  const viewBtn = archiveDiv.querySelector(".view-btn");
-  const deleteBtn = archiveDiv.querySelector(".delete-btn");
+  const headerTitle = document.createElement("h3");
+  headerTitle.textContent = monthName;
+
+  const archiveActions = document.createElement("div");
+  archiveActions.className = "archive-actions";
+
+  const viewBtn = document.createElement("button");
+  viewBtn.className = "view-btn";
+  viewBtn.dataset.month = monthKey;
+  viewBtn.textContent = "View Details";
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.className = "delete-btn";
+  deleteBtn.dataset.month = monthKey;
+  deleteBtn.textContent = "Delete";
+
+  archiveActions.appendChild(viewBtn);
+  archiveActions.appendChild(deleteBtn);
+  archiveHeader.appendChild(headerTitle);
+  archiveHeader.appendChild(archiveActions);
+
+  // Create archive summary
+  const archiveSummary = document.createElement("div");
+  archiveSummary.className = "archive-summary";
+
+  // Helper function to create stat divs
+  function createStatDiv(label, value) {
+    const statDiv = document.createElement("div");
+    statDiv.className = "archive-stat";
+
+    const labelSpan = document.createElement("span");
+    labelSpan.className = "label";
+    labelSpan.textContent = label;
+
+    const valueSpan = document.createElement("span");
+    valueSpan.className = "value";
+    valueSpan.textContent = value;
+
+    statDiv.appendChild(labelSpan);
+    statDiv.appendChild(valueSpan);
+    return statDiv;
+  }
+
+  archiveSummary.appendChild(
+    createStatDiv("Total Debt:", `$${archive.totals.totalDebt.toFixed(2)}`),
+  );
+  archiveSummary.appendChild(createStatDiv("Total Time:", timeString));
+  archiveSummary.appendChild(
+    createStatDiv("Sites Tracked:", archive.totals.siteCount),
+  );
+  archiveSummary.appendChild(createStatDiv("Rate:", `$${archive.rate}/min`));
+  archiveSummary.appendChild(createStatDiv("Archived:", archivedDateStr));
+
+  // Create archive details
+  const archiveDetails = document.createElement("div");
+  archiveDetails.className = "archive-details";
+  archiveDetails.id = `details-${monthKey}`;
+  archiveDetails.style.display = "none";
+
+  const detailsTitle = document.createElement("h4");
+  detailsTitle.textContent = "Site Breakdown";
+
+  const sitesList = document.createElement("div");
+  sitesList.className = "sites-list";
+
+  // Create site entries
+  Object.entries(archive.sites).forEach(([domain, data]) => {
+    const hours = Math.floor(data.totalTime / 60);
+    const minutes = Math.floor(data.totalTime % 60);
+    const siteTimeString = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+    const siteEntry = document.createElement("div");
+    siteEntry.className = "site-entry";
+
+    const siteName = document.createElement("span");
+    siteName.className = "site-name";
+    siteName.textContent = domain;
+
+    const siteTime = document.createElement("span");
+    siteTime.className = "site-time";
+    siteTime.textContent = siteTimeString;
+
+    const siteDebt = document.createElement("span");
+    siteDebt.className = "site-debt";
+    siteDebt.textContent = `$${data.debt.toFixed(2)}`;
+
+    siteEntry.appendChild(siteName);
+    siteEntry.appendChild(siteTime);
+    siteEntry.appendChild(siteDebt);
+    sitesList.appendChild(siteEntry);
+  });
+
+  archiveDetails.appendChild(detailsTitle);
+  archiveDetails.appendChild(sitesList);
+
+  // Assemble the complete archive div
+  archiveDiv.appendChild(archiveHeader);
+  archiveDiv.appendChild(archiveSummary);
+  archiveDiv.appendChild(archiveDetails);
 
   viewBtn.addEventListener("click", () => toggleArchiveDetails(monthKey));
   deleteBtn.addEventListener("click", () => deleteArchive(monthKey));
@@ -193,7 +241,9 @@ function updateSummaryStats(archives) {
   const totalHours = Math.floor(totalTime / 60);
   const totalMinutes = Math.floor(totalTime % 60);
   const timeString =
-    totalHours > 0 ? `${totalHours}h ${totalMinutes.toFixed(5)}m` : `${totalTime.toFixed(5)}m`;
+    totalHours > 0
+      ? `${totalHours}h ${totalMinutes.toFixed(5)}m`
+      : `${totalTime.toFixed(5)}m`;
 
   document.getElementById("total-months").textContent = archiveKeys.length;
   document.getElementById("total-debt").textContent =
