@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Blackhole Archive</title>
+    <link rel="stylesheet" href="css/archive.css" />
+  </head>
+  <body>
+    <h1>Blackhole Archive</h1>
+
+    <div class="controls">
+      <button id="archive-current-btn">Archive Current Month</button>
+      <button id="back-to-options-btn">Back to Options</button>
+    </div>
+
+    <div class="archive-summary">
+      <h2>Archive Summary</h2>
+      <div id="archive-stats">
+        <div class="stat">
+          <span class="stat-label">Total Archived Months:</span>
+          <span id="total-months">0</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Total Historical Debt:</span>
+          <span id="total-debt">$0.00</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Total Historical Time:</span>
+          <span id="total-time">0m</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="archive-list">
+      <h2>Monthly Archives</h2>
+      <div id="archives-container">
+        <p id="no-archives">
+          No archives found. Data will be automatically archived at the end of
+          each month.
+        </p>
+      </div>
+    </div>
+
+    <script src="js/archive.js"></script>
+    <script src="js/archive-ui.js"></script>
+  </body>
+</html>

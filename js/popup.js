@@ -15,6 +15,13 @@ function updateUI() {
   document.getElementById("total-debt").textContent =
     `$${totalDebt.toFixed(5)}`;
 
+  // Show current month info
+  const currentMonth = new Date().toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'long' 
+  });
+  document.getElementById("current-month").textContent = currentMonth;
+
   // Display site list
   const sitesList = document.getElementById("sites-list");
   sitesList.innerHTML = "";

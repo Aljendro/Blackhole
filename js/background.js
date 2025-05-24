@@ -27,6 +27,8 @@ console.debug("[Background] Initializing tracker module");
 initializeTracker()
   .then(() => {
     console.debug("[Background] Tracker module initialized successfully");
+    // Initialize archive manager and check for month changes
+    initializeArchiveManager();
   })
   .catch((error) => {
     console.error("[Background] Error initializing tracker module:", error);
@@ -35,6 +37,27 @@ initializeTracker()
 // Initialize the messaging module
 console.debug("[Background] Initializing messaging module");
 initializeMessaging();
+
+// Archive manager instance
+let archiveManager;
+
+async function initializeArchiveManager() {
+  console.debug("[Background] Initializing archive manager");
+  archiveManager = new ArchiveManager();
+  
+  // Check for month change on startup
+  await archiveManager.checkForMonthChange();
+  
+  // Set up periodic check for month changes (check every hour)
+  browser.alarms.create('monthChangeCheck', { periodInMinutes: 60 });
+  
+  browser.alarms.onAlarm.addListener(async (alarm) => {
+    if (alarm.name === 'monthChangeCheck') {
+      console.debug("[Background] Checking for month change");
+      await archiveManager.checkForMonthChange();
+    }
+  });
+}
 
 // Update time tracking when tab changes
 console.debug("[Background] Setting up tab activation listener");
