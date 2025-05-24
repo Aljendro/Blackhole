@@ -46,8 +46,7 @@ function createArchiveElement(monthKey, archive) {
   const archiveDiv = document.createElement("div");
   archiveDiv.className = "archive-item";
 
-  // const monthDate = new Date(monthKey + "-01");
-  const monthDate = new Date(archive.archivedAt);
+  const monthDate = new Date(monthKey + "-01");
   const monthName = monthDate.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
