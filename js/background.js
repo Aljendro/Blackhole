@@ -44,15 +44,15 @@ let archiveManager;
 async function initializeArchiveManager() {
   console.debug("[Background] Initializing archive manager");
   archiveManager = new ArchiveManager();
-  
+
   // Check for month change on startup
   await archiveManager.checkForMonthChange();
-  
+
   // Set up periodic check for month changes (check every hour)
-  browser.alarms.create('monthChangeCheck', { periodInMinutes: 60 });
-  
+  browser.alarms.create("monthChangeCheck", { periodInMinutes: 60 });
+
   browser.alarms.onAlarm.addListener(async (alarm) => {
-    if (alarm.name === 'monthChangeCheck') {
+    if (alarm.name === "monthChangeCheck") {
       console.debug("[Background] Checking for month change");
       await archiveManager.checkForMonthChange();
     }

@@ -105,8 +105,6 @@ document
 document
   .getElementById("cancel-btn")
   .addEventListener("click", () => window.close());
-document
-  .getElementById("view-archive-btn")
-  .addEventListener("click", () => {
-    browser.tabs.create({ url: browser.runtime.getURL("archive.html") });
-  });
+document.getElementById("view-archive-btn").addEventListener("click", () => {
+  browser.tabs.create({ url: browser.runtime.getURL("archive.html") });
+});

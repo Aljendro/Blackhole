@@ -16,9 +16,9 @@ function updateUI() {
     `$${totalDebt.toFixed(5)}`;
 
   // Show current month info
-  const currentMonth = new Date().toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'long' 
+  const currentMonth = new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
   });
   document.getElementById("current-month").textContent = currentMonth;
 
