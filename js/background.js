@@ -51,7 +51,7 @@ console.debug("[Background] Setting up tab update listener");
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   console.debug(
     `[Background] Tab updated: tabId=${tabId}, changeInfo=`,
-    changeInfo
+    changeInfo,
   );
   if (changeInfo.url) {
     console.debug(`[Background] URL changed to: ${changeInfo.url}`);
@@ -76,7 +76,7 @@ browser.windows.onFocusChanged.addListener(async (windowId) => {
         currentWindow: true,
       });
       console.debug(
-        `[Background] Found ${tabs.length} active tabs in current window`
+        `[Background] Found ${tabs.length} active tabs in current window`,
       );
       if (tabs.length > 0) {
         console.debug(`[Background] Active tab: url=${tabs[0].url}`);
@@ -105,13 +105,13 @@ console.debug("[Background] Setting up storage change listener");
 browser.storage.onChanged.addListener((changes, namespace) => {
   console.debug(
     `[Background] Storage changed in namespace "${namespace}":`,
-    changes
+    changes,
   );
   if (namespace === "sync" || namespace === "local") {
     // Check if any configuration keys changed
     const configKeys = ["blackholes", "rate", "config"];
     const hasConfigChanges = Object.keys(changes).some((key) =>
-      configKeys.includes(key)
+      configKeys.includes(key),
     );
 
     if (hasConfigChanges) {
@@ -165,7 +165,7 @@ function isBlackhole(url) {
   console.debug(`[Tracker] Checking if URL is blackhole: ${url}`);
   if (!url || !config.blackholes) {
     console.debug(
-      `[Tracker] URL invalid or no blackholes configured, returning false`
+      `[Tracker] URL invalid or no blackholes configured, returning false`,
     );
     return false;
   }
@@ -180,7 +180,7 @@ function isBlackhole(url) {
     } catch (error) {
       console.error(
         `[Tracker] Error in regex pattern ${blackhole.url}:`,
-        error
+        error,
       );
       return false;
     }
@@ -192,7 +192,7 @@ function isBlackhole(url) {
 
 // Handle tab changes
 function handleTabChange(tab) {
-  console.debug(`[Tracker] Tab change detected:`, tab);
+  console.info(`[Tracker] Tab change detected:`, tab);
   console.debug(`[Tracker] Current active tab before change:`, activeTab);
   console.debug(`[Tracker] Current startTime before change: ${startTime}`);
 
@@ -204,7 +204,7 @@ function handleTabChange(tab) {
     console.debug(`[Tracker] Is blackhole result: ${isBlackholeResult}`);
 
     if (isBlackholeResult) {
-      console.debug(`[Tracker] Starting to track blackhole site: ${tab.url}`);
+      console.info(`[Tracker] Starting to track blackhole site: ${tab.url}`);
       startTracking(tab.url);
       activeTab = tab;
       console.debug(`[Tracker] Active tab set to:`, activeTab);
@@ -218,10 +218,10 @@ function handleTabChange(tab) {
 
 // Start tracking a blackhole site
 function startTracking(url) {
-  console.debug(`[Tracker] startTracking called for URL: ${url}`);
+  console.info(`[Tracker] startTracking called for URL: ${url}`);
   startTime = Date.now();
-  console.debug(`[Tracker] Set startTime to: ${startTime}`);
-  console.log(`Started tracking: ${url}`);
+  console.info(`[Tracker] Set startTime to: ${startTime}`);
+  console.info(`Started tracking: ${url}`);
 
   // Turn icon red when tracking a blackhole site
   browser.browserAction
@@ -239,7 +239,7 @@ function startTracking(url) {
 }
 
 async function stopTracking() {
-  console.debug(`[Tracker] stopTracking called`);
+  console.info(`[Tracker] stopTracking called`);
   console.debug(`[Tracker] Current activeTab:`, activeTab);
   console.debug(`[Tracker] Current startTime: ${startTime}`);
 
@@ -247,6 +247,20 @@ async function stopTracking() {
     console.debug(`[Tracker] Active tracking session found, calculating...`);
     const url = activeTab.url;
     console.debug(`[Tracker] URL being tracked: ${url}`);
+
+    // Reset icon to default when not tracking a blackhole site
+    browser.browserAction
+      .setIcon({
+        path: {
+          16: "../images/icon-16.png",
+          32: "../images/icon-32.png",
+          48: "../images/icon-48.png",
+          128: "../images/icon-128.png",
+        },
+      })
+      .catch((error) => {
+        console.error("[Tracker] Error setting default icon:", error);
+      });
 
     try {
       const domain = new URL(url).hostname;
@@ -260,36 +274,19 @@ async function stopTracking() {
       const updatedData = await TrackingUtils.addTimeToCurrentMonth(
         domain,
         timeSpent,
-        config.rate
+        config.rate,
       );
       console.debug(
         `[Tracker] Updated tracking data for ${domain}:`,
-        updatedData
+        updatedData,
       );
 
       // Notify messaging system of changes
       console.debug(`[Tracker] Sending tracking update`);
       sendTrackingUpdate();
 
-      console.log(
-        `Stopped tracking ${domain}: ${timeSpent.toFixed(2)} minutes`
-      );
       startTime = null;
       activeTab = null;
-
-      // Reset icon to default when not tracking a blackhole site
-      browser.browserAction
-        .setIcon({
-          path: {
-            16: "../images/icon-16.png",
-            32: "../images/icon-32.png",
-            48: "../images/icon-48.png",
-            128: "../images/icon-128.png",
-          },
-        })
-        .catch((error) => {
-          console.error("[Tracker] Error setting default icon:", error);
-        });
 
       console.debug(`[Tracker] Reset startTime and activeTab to null`);
     } catch (error) {
