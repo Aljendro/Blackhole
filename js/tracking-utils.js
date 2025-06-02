@@ -33,25 +33,25 @@ class TrackingUtils {
   static async addTimeToCurrentMonth(domain, timeSpent, rate) {
     const trackingData = await this.getTrackingData();
     const currentMonth = this.getCurrentMonthKey();
-    
+
     if (!trackingData[currentMonth]) {
       trackingData[currentMonth] = {};
     }
-    
+
     if (!trackingData[currentMonth][domain]) {
       trackingData[currentMonth][domain] = { totalTime: 0, debt: 0 };
     }
-    
+
     trackingData[currentMonth][domain].totalTime += timeSpent;
     trackingData[currentMonth][domain].debt += timeSpent * rate;
-    
+
     await this.saveTrackingData(trackingData);
     return trackingData[currentMonth][domain];
   }
 
   static getArchivedMonths(trackingData) {
     const currentMonth = this.getCurrentMonthKey();
-    return Object.keys(trackingData).filter(month => month !== currentMonth);
+    return Object.keys(trackingData).filter((month) => month !== currentMonth);
   }
 
   static calculateMonthTotals(monthData) {

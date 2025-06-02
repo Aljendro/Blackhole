@@ -14,7 +14,7 @@ async function updateUI() {
 
   // Update UI
   document.getElementById("total-debt").textContent = `$${totalDebt.toFixed(
-    5
+    5,
   )}`;
 
   // Show current month info
@@ -30,7 +30,7 @@ async function updateUI() {
 
   // Sort domains by debt (highest first)
   const sortedDomains = Object.keys(currentMonthData).sort(
-    (a, b) => currentMonthData[b].debt - currentMonthData[a].debt
+    (a, b) => currentMonthData[b].debt - currentMonthData[a].debt,
   );
 
   for (const domain of sortedDomains) {

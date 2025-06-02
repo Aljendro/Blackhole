@@ -21,9 +21,10 @@ async function loadArchives() {
       const container = document.getElementById("archives-container");
       container.innerHTML = "";
       const noArchivesElement = document.createElement("p");
-      noArchivesElement.id = "no-archives"
-      noArchivesElement.innerText = "No archives found. Data will be automatically archived at the end of each month."
-      container.appendChild(noArchivesElement)
+      noArchivesElement.id = "no-archives";
+      noArchivesElement.innerText =
+        "No archives found. Data will be automatically archived at the end of each month.";
+      container.appendChild(noArchivesElement);
       updateSummaryStats({});
       return;
     }
