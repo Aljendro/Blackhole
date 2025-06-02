@@ -18,12 +18,16 @@ async function loadArchives() {
     const sortedMonths = archivedMonths.sort().reverse(); // Most recent first
 
     if (sortedMonths.length === 0) {
-      document.getElementById("no-archives").style.display = "block";
+      const container = document.getElementById("archives-container");
+      container.innerHTML = "";
+      const noArchivesElement = document.createElement("p");
+      noArchivesElement.id = "no-archives"
+      noArchivesElement.innerText = "No archives found. Data will be automatically archived at the end of each month."
+      container.appendChild(noArchivesElement)
       updateSummaryStats({});
       return;
     }
 
-    document.getElementById("no-archives").style.display = "none";
     const container = document.getElementById("archives-container");
     container.innerHTML = "";
 
@@ -43,7 +47,8 @@ function createArchiveElement(monthKey, monthData) {
   const archiveDiv = document.createElement("div");
   archiveDiv.className = "archive-item";
 
-  const monthDate = new Date(monthKey + "-01");
+  const [year, month] = monthKey.split("-");
+  const monthDate = new Date(parseInt(year), parseInt(month) - 1, 1);
   const monthName = monthDate.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -106,7 +111,7 @@ function createArchiveElement(monthKey, monthData) {
   const defaultRate = 0.01; // fallback rate
 
   archiveSummary.appendChild(
-    createStatDiv("Total Debt:", `$${totals.totalDebt.toFixed(2)}`)
+    createStatDiv("Total Debt:", `$${totals.totalDebt.toFixed(2)}`),
   );
   archiveSummary.appendChild(createStatDiv("Total Time:", timeString));
   archiveSummary.appendChild(createStatDiv("Sites Tracked:", totals.siteCount));
@@ -180,7 +185,7 @@ function toggleArchiveDetails(monthKey) {
 async function deleteArchive(monthKey) {
   if (
     !confirm(
-      `Are you sure you want to delete the archive for ${monthKey}? This action cannot be undone.`
+      `Are you sure you want to delete the archive for ${monthKey}? This action cannot be undone.`,
     )
   ) {
     return;
@@ -216,7 +221,7 @@ function updateSummaryStats(trackingData) {
 
   document.getElementById("total-months").textContent = archivedMonths.length;
   document.getElementById("total-debt").textContent = `$${totalDebt.toFixed(
-    2
+    2,
   )}`;
   document.getElementById("total-time").textContent = timeString;
 }

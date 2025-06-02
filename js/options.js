@@ -90,7 +90,6 @@ async function saveConfiguration() {
     await browser.storage.local.set({ config });
 
     alert("Configuration saved successfully!");
-    window.close();
   } catch (error) {
     console.error("Failed to save configuration:", error);
     alert("Error saving configuration: " + error.message);
