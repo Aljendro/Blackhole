@@ -1,19 +1,21 @@
-// Variables to store data and update interval
-let trackingData = {};
+// Variables to store config and update interval
 let config = { rate: 0.01 };
 let updateInterval;
 
 // Function to update the UI with the latest data
-function updateUI() {
-  // Calculate total debt
+async function updateUI() {
+  const currentMonthData = await TrackingUtils.getCurrentMonthData();
+
+  // Calculate total debt for current month
   let totalDebt = 0;
-  for (const domain in trackingData) {
-    totalDebt += trackingData[domain].debt;
+  for (const domain in currentMonthData) {
+    totalDebt += currentMonthData[domain].debt;
   }
 
   // Update UI
-  document.getElementById("total-debt").textContent =
-    `$${totalDebt.toFixed(5)}`;
+  document.getElementById("total-debt").textContent = `$${totalDebt.toFixed(
+    5
+  )}`;
 
   // Show current month info
   const currentMonth = new Date().toLocaleDateString("en-US", {
@@ -27,12 +29,12 @@ function updateUI() {
   sitesList.innerHTML = "";
 
   // Sort domains by debt (highest first)
-  const sortedDomains = Object.keys(trackingData).sort(
-    (a, b) => trackingData[b].debt - trackingData[a].debt,
+  const sortedDomains = Object.keys(currentMonthData).sort(
+    (a, b) => currentMonthData[b].debt - currentMonthData[a].debt
   );
 
   for (const domain of sortedDomains) {
-    const siteData = trackingData[domain];
+    const siteData = currentMonthData[domain];
     const siteElement = document.createElement("div");
     siteElement.className = "site-entry";
 
@@ -63,14 +65,13 @@ function updateUI() {
 
 // Function to load the initial data
 async function loadData() {
-  const result = await browser.storage.local.get(["trackingData", "config"]);
-  trackingData = result.trackingData || {};
+  const result = await browser.storage.local.get("config");
   config = result.config || { rate: 0.01 };
 
   // Check if active tracking is happening and update UI with latest data
   await requestActiveStateUpdate();
 
-  updateUI();
+  await updateUI();
 }
 
 async function requestActiveStateUpdate() {
@@ -82,16 +83,12 @@ async function requestActiveStateUpdate() {
     if (activeState && activeState.isActive) {
       // Update the active site's data with current session
       const domain = activeState.domain;
-      if (domain && trackingData[domain]) {
-        const currentSessionTime =
-          (Date.now() - activeState.startTime) / 1000 / 60;
-        const tempData = { ...trackingData };
-        tempData[domain] = {
-          totalTime: trackingData[domain].totalTime + currentSessionTime,
-          debt: trackingData[domain].debt + currentSessionTime * config.rate,
-        };
-        trackingData = tempData;
-      }
+      const currentSessionTime =
+        (Date.now() - activeState.startTime) / 1000 / 60;
+
+      // We don't need to manually update tracking data here since
+      // TrackingUtils.getCurrentMonthData() will fetch the latest data
+      // The active session time will be added when stopTracking() is called
     }
   } catch (error) {
     console.error("Failed to get active state:", error);
@@ -104,10 +101,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadData();
 
   // Set up message listener for data updates from background script
-  browser.runtime.onMessage.addListener((message) => {
+  browser.runtime.onMessage.addListener(async (message) => {
     if (message.type === "trackingUpdate") {
-      trackingData = message.trackingData;
-      updateUI();
+      // Refresh the UI when tracking data is updated
+      await updateUI();
     }
   });
 

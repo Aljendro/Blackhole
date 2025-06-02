@@ -5,7 +5,7 @@
   "description": "Track time spent on specified websites and calculate debt accumulated.",
   "permissions": ["storage", "tabs", "alarms", "contextMenus"],
   "background": {
-    "scripts": ["js/archive.js", "js/background.js"]
+    "scripts": ["js/tracking-utils.js", "js/background.js"]
   },
   "content_scripts": [
     {

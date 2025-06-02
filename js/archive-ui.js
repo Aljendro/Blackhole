@@ -1,13 +1,8 @@
 let archiveManager;
 
 document.addEventListener("DOMContentLoaded", async () => {
-  archiveManager = new ArchiveManager();
   await loadArchives();
 
-  // Event listeners
-  document
-    .getElementById("archive-current-btn")
-    .addEventListener("click", archiveCurrentMonth);
   document
     .getElementById("back-to-options-btn")
     .addEventListener("click", () => {
@@ -18,31 +13,33 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function loadArchives() {
   try {
-    const archives = await archiveManager.getArchives();
-    const archiveKeys = Object.keys(archives).sort().reverse(); // Most recent first
+    const trackingData = await TrackingUtils.getTrackingData();
+    const archivedMonths = TrackingUtils.getArchivedMonths(trackingData);
+    const sortedMonths = archivedMonths.sort().reverse(); // Most recent first
 
-    if (archiveKeys.length === 0) {
+    if (sortedMonths.length === 0) {
       document.getElementById("no-archives").style.display = "block";
-      updateSummaryStats(archives);
+      updateSummaryStats({});
       return;
     }
 
     document.getElementById("no-archives").style.display = "none";
     const container = document.getElementById("archives-container");
     container.innerHTML = "";
-    for (const monthKey of archiveKeys) {
-      const archive = archives[monthKey];
-      const archiveElement = createArchiveElement(monthKey, archive);
+
+    for (const monthKey of sortedMonths) {
+      const monthData = trackingData[monthKey];
+      const archiveElement = createArchiveElement(monthKey, monthData);
       container.appendChild(archiveElement);
     }
 
-    updateSummaryStats(archives);
+    updateSummaryStats(trackingData);
   } catch (error) {
     console.error("Error loading archives:", error);
   }
 }
 
-function createArchiveElement(monthKey, archive) {
+function createArchiveElement(monthKey, monthData) {
   const archiveDiv = document.createElement("div");
   archiveDiv.className = "archive-item";
 
@@ -52,15 +49,9 @@ function createArchiveElement(monthKey, archive) {
     month: "long",
   });
 
-  const archivedDate = new Date(archive.archivedAt);
-  const archivedDateStr = archivedDate.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-
-  const totalHours = Math.floor(archive.totals.totalTime / 60);
-  const totalMinutes = Math.floor(archive.totals.totalTime % 60);
+  const totals = TrackingUtils.calculateMonthTotals(monthData);
+  const totalHours = Math.floor(totals.totalTime / 60);
+  const totalMinutes = Math.floor(totals.totalTime % 60);
   const timeString =
     totalHours > 0 ? `${totalHours}h ${totalMinutes}m` : `${totalMinutes}m`;
 
@@ -111,15 +102,15 @@ function createArchiveElement(monthKey, archive) {
     return statDiv;
   }
 
+  // Get current rate from config (we'll need to load this)
+  const defaultRate = 0.01; // fallback rate
+
   archiveSummary.appendChild(
-    createStatDiv("Total Debt:", `$${archive.totals.totalDebt.toFixed(2)}`),
+    createStatDiv("Total Debt:", `$${totals.totalDebt.toFixed(2)}`)
   );
   archiveSummary.appendChild(createStatDiv("Total Time:", timeString));
-  archiveSummary.appendChild(
-    createStatDiv("Sites Tracked:", archive.totals.siteCount),
-  );
-  archiveSummary.appendChild(createStatDiv("Rate:", `$${archive.rate}/min`));
-  archiveSummary.appendChild(createStatDiv("Archived:", archivedDateStr));
+  archiveSummary.appendChild(createStatDiv("Sites Tracked:", totals.siteCount));
+  archiveSummary.appendChild(createStatDiv("Rate:", `$${defaultRate}/min`));
 
   // Create archive details
   const archiveDetails = document.createElement("div");
@@ -133,8 +124,7 @@ function createArchiveElement(monthKey, archive) {
   const sitesList = document.createElement("div");
   sitesList.className = "sites-list";
 
-  // Create site entries
-  Object.entries(archive.sites).forEach(([domain, data]) => {
+  Object.entries(monthData).forEach(([domain, data]) => {
     const hours = Math.floor(data.totalTime / 60);
     const minutes = Math.floor(data.totalTime % 60);
     const siteTimeString = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
@@ -190,14 +180,14 @@ function toggleArchiveDetails(monthKey) {
 async function deleteArchive(monthKey) {
   if (
     !confirm(
-      `Are you sure you want to delete the archive for ${monthKey}? This action cannot be undone.`,
+      `Are you sure you want to delete the archive for ${monthKey}? This action cannot be undone.`
     )
   ) {
     return;
   }
 
   try {
-    await archiveManager.deleteArchive(monthKey);
+    await TrackingUtils.deleteArchivedMonth(monthKey);
     await loadArchives(); // Refresh the display
   } catch (error) {
     console.error("Error deleting archive:", error);
@@ -205,37 +195,16 @@ async function deleteArchive(monthKey) {
   }
 }
 
-async function archiveCurrentMonth() {
-  if (
-    !confirm(
-      "This will archive the current month's data and reset tracking. Continue?",
-    )
-  ) {
-    return;
-  }
-
-  try {
-    const success = await archiveManager.archiveCurrentMonth();
-    if (success) {
-      alert("Current month archived successfully!");
-      await loadArchives(); // Refresh the display
-    } else {
-      alert("No data to archive for current month.");
-    }
-  } catch (error) {
-    console.error("Error archiving current month:", error);
-    alert("Error archiving current month: " + error.message);
-  }
-}
-
-function updateSummaryStats(archives) {
-  const archiveKeys = Object.keys(archives);
+function updateSummaryStats(trackingData) {
+  const archivedMonths = TrackingUtils.getArchivedMonths(trackingData);
   let totalDebt = 0;
   let totalTime = 0;
 
-  for (const key of archiveKeys) {
-    totalDebt += archives[key].totals.totalDebt;
-    totalTime += archives[key].totals.totalTime;
+  for (const monthKey of archivedMonths) {
+    const monthData = trackingData[monthKey];
+    const totals = TrackingUtils.calculateMonthTotals(monthData);
+    totalDebt += totals.totalDebt;
+    totalTime += totals.totalTime;
   }
 
   const totalHours = Math.floor(totalTime / 60);
@@ -245,8 +214,9 @@ function updateSummaryStats(archives) {
       ? `${totalHours}h ${totalMinutes.toFixed(5)}m`
       : `${totalTime.toFixed(5)}m`;
 
-  document.getElementById("total-months").textContent = archiveKeys.length;
-  document.getElementById("total-debt").textContent =
-    `$${totalDebt.toFixed(2)}`;
+  document.getElementById("total-months").textContent = archivedMonths.length;
+  document.getElementById("total-debt").textContent = `$${totalDebt.toFixed(
+    2
+  )}`;
   document.getElementById("total-time").textContent = timeString;
 }

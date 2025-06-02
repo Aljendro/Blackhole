@@ -14,21 +14,16 @@ let config = {
   rate: 0.01, // $0.01 per minute
 };
 
-// Track active sites and time
 let activeTab = null;
-let trackingData = {};
 let startTime = null;
 let popupOpen = false;
 
 console.debug("[Background] Script loaded and running");
 
-// Initialize the tracker
 console.debug("[Background] Initializing tracker module");
 initializeTracker()
   .then(() => {
     console.debug("[Background] Tracker module initialized successfully");
-    // Initialize archive manager and check for month changes
-    initializeArchiveManager();
   })
   .catch((error) => {
     console.error("[Background] Error initializing tracker module:", error);
@@ -37,27 +32,6 @@ initializeTracker()
 // Initialize the messaging module
 console.debug("[Background] Initializing messaging module");
 initializeMessaging();
-
-// Archive manager instance
-let archiveManager;
-
-async function initializeArchiveManager() {
-  console.debug("[Background] Initializing archive manager");
-  archiveManager = new ArchiveManager();
-
-  // Check for month change on startup
-  await archiveManager.checkForMonthChange();
-
-  // Set up periodic check for month changes (check every hour)
-  browser.alarms.create("monthChangeCheck", { periodInMinutes: 60 });
-
-  browser.alarms.onAlarm.addListener(async (alarm) => {
-    if (alarm.name === "monthChangeCheck") {
-      console.debug("[Background] Checking for month change");
-      await archiveManager.checkForMonthChange();
-    }
-  });
-}
 
 // Update time tracking when tab changes
 console.debug("[Background] Setting up tab activation listener");
@@ -77,7 +51,7 @@ console.debug("[Background] Setting up tab update listener");
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   console.debug(
     `[Background] Tab updated: tabId=${tabId}, changeInfo=`,
-    changeInfo,
+    changeInfo
   );
   if (changeInfo.url) {
     console.debug(`[Background] URL changed to: ${changeInfo.url}`);
@@ -102,7 +76,7 @@ browser.windows.onFocusChanged.addListener(async (windowId) => {
         currentWindow: true,
       });
       console.debug(
-        `[Background] Found ${tabs.length} active tabs in current window`,
+        `[Background] Found ${tabs.length} active tabs in current window`
       );
       if (tabs.length > 0) {
         console.debug(`[Background] Active tab: url=${tabs[0].url}`);
@@ -131,13 +105,13 @@ console.debug("[Background] Setting up storage change listener");
 browser.storage.onChanged.addListener((changes, namespace) => {
   console.debug(
     `[Background] Storage changed in namespace "${namespace}":`,
-    changes,
+    changes
   );
   if (namespace === "sync" || namespace === "local") {
     // Check if any configuration keys changed
     const configKeys = ["blackholes", "rate", "config"];
     const hasConfigChanges = Object.keys(changes).some((key) =>
-      configKeys.includes(key),
+      configKeys.includes(key)
     );
 
     if (hasConfigChanges) {
@@ -167,29 +141,23 @@ browser.contextMenus.onClicked.addListener((info) => {
 ////////////////// TRACKER FUNCTIONALITY /////////////////
 //////////////////////////////////////////////////////////
 
-// Initialize tracker
-function initializeTracker() {
+async function initializeTracker() {
   console.debug("[Tracker] Initializing tracker module");
-  // Load configuration from storage
   console.debug("[Tracker] Loading configuration from storage");
-  return new Promise((resolve) => {
-    browser.storage.local.get(["config", "trackingData"], (result) => {
-      console.debug("[Tracker] Storage data retrieved:", result);
-      if (result.config) {
-        config = result.config;
-        console.debug("[Tracker] Loaded config:", config);
-      } else {
-        console.debug("[Tracker] No saved config found, using defaults");
-      }
-      if (result.trackingData) {
-        trackingData = result.trackingData;
-        console.debug("[Tracker] Loaded tracking data:", trackingData);
-      } else {
-        console.debug("[Tracker] No saved tracking data found");
-      }
-      resolve();
-    });
-  });
+
+  try {
+    const result = await browser.storage.local.get("config");
+    console.debug("[Tracker] Storage data retrieved:", result);
+
+    if (result.config) {
+      config = result.config;
+      console.debug("[Tracker] Loaded config:", config);
+    } else {
+      console.debug("[Tracker] No saved config found, using defaults");
+    }
+  } catch (error) {
+    console.error("[Tracker] Error initializing tracker:", error);
+  }
 }
 
 // Check if a URL matches any blackhole pattern
@@ -197,7 +165,7 @@ function isBlackhole(url) {
   console.debug(`[Tracker] Checking if URL is blackhole: ${url}`);
   if (!url || !config.blackholes) {
     console.debug(
-      `[Tracker] URL invalid or no blackholes configured, returning false`,
+      `[Tracker] URL invalid or no blackholes configured, returning false`
     );
     return false;
   }
@@ -212,7 +180,7 @@ function isBlackhole(url) {
     } catch (error) {
       console.error(
         `[Tracker] Error in regex pattern ${blackhole.url}:`,
-        error,
+        error
       );
       return false;
     }
@@ -270,8 +238,7 @@ function startTracking(url) {
     });
 }
 
-// Stop tracking and calculate debt
-function stopTracking() {
+async function stopTracking() {
   console.debug(`[Tracker] stopTracking called`);
   console.debug(`[Tracker] Current activeTab:`, activeTab);
   console.debug(`[Tracker] Current startTime: ${startTime}`);
@@ -289,37 +256,23 @@ function stopTracking() {
       console.debug(`[Tracker] Time spent: ${timeSpent.toFixed(4)} minutes`);
       console.debug(`[Tracker] Current rate: ${config.rate} per minute`);
 
-      if (!trackingData[domain]) {
-        console.debug(
-          `[Tracker] First time tracking ${domain}, initializing data`,
-        );
-        trackingData[domain] = { totalTime: 0, debt: 0 };
-      } else {
-        console.debug(
-          `[Tracker] Existing tracking data for ${domain}:`,
-          trackingData[domain],
-        );
-      }
-
-      trackingData[domain].totalTime += timeSpent;
-      trackingData[domain].debt += timeSpent * config.rate;
+      // Add time to current month
+      const updatedData = await TrackingUtils.addTimeToCurrentMonth(
+        domain,
+        timeSpent,
+        config.rate
+      );
       console.debug(
         `[Tracker] Updated tracking data for ${domain}:`,
-        trackingData[domain],
+        updatedData
       );
-
-      // Save tracking data
-      console.debug(`[Tracker] Saving tracking data to storage`);
-      browser.storage.local.set({ trackingData }, () => {
-        console.debug(`[Tracker] Tracking data saved successfully`);
-      });
 
       // Notify messaging system of changes
       console.debug(`[Tracker] Sending tracking update`);
       sendTrackingUpdate();
 
       console.log(
-        `Stopped tracking ${domain}: ${timeSpent.toFixed(2)} minutes`,
+        `Stopped tracking ${domain}: ${timeSpent.toFixed(2)} minutes`
       );
       startTime = null;
       activeTab = null;
@@ -383,9 +336,9 @@ function initializeMessaging() {
   });
 }
 
-// Function to send tracking data to popup
-function sendTrackingUpdate() {
+async function sendTrackingUpdate() {
   if (popupOpen) {
+    const trackingData = await TrackingUtils.getTrackingData();
     browser.runtime.sendMessage({
       type: "trackingUpdate",
       trackingData: trackingData,
