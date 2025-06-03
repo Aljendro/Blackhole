@@ -243,24 +243,24 @@ async function stopTracking() {
   console.debug(`[Tracker] Current activeTab:`, activeTab);
   console.debug(`[Tracker] Current startTime: ${startTime}`);
 
+  // Reset icon to default when not tracking a blackhole site
+  browser.browserAction
+    .setIcon({
+      path: {
+        16: "../images/icon-16.png",
+        32: "../images/icon-32.png",
+        48: "../images/icon-48.png",
+        128: "../images/icon-128.png",
+      },
+    })
+    .catch((error) => {
+      console.error("[Tracker] Error setting default icon:", error);
+    });
+
   if (activeTab && startTime) {
     console.debug(`[Tracker] Active tracking session found, calculating...`);
     const url = activeTab.url;
     console.debug(`[Tracker] URL being tracked: ${url}`);
-
-    // Reset icon to default when not tracking a blackhole site
-    browser.browserAction
-      .setIcon({
-        path: {
-          16: "../images/icon-16.png",
-          32: "../images/icon-32.png",
-          48: "../images/icon-48.png",
-          128: "../images/icon-128.png",
-        },
-      })
-      .catch((error) => {
-        console.error("[Tracker] Error setting default icon:", error);
-      });
 
     try {
       const domain = new URL(url).hostname;
